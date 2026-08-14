@@ -1,0 +1,306 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model PlaidItem {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  encryptedAccessToken String
+  accessTokenIv        String
+  accessTokenAuthTag   String
+  itemId               String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RateLimitEntry {
+  key       String   @id
+  count     Int      @default(0)
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+}
+
+model UserEmail {
+  id          String    @id @default(cuid())
+  userId      String
+  email       String
+  provider    String
+  accessToken String
+  lastScanned DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, email], name: "userId_email")
+}
+
+model User {
+  id                              String           @id @default(cuid())
+  email                           String           @unique
+  name                            String?
+  password                        String?
+  createdAt                       DateTime         @default(now())
+  updatedAt                       DateTime         @updatedAt
+  // 2FA - TOTP (Authenticator App) fields
+  twoFactorSecret                 String?
+  twoFactorEnabled                Boolean          @default(false)
+  backupCodes                     String[]         @default([])
+  // 2FA - Email fields
+  twoFactorEmailEnabled           Boolean          @default(true)  // Email 2FA enabled by default
+  emailVerificationCode           String?
+  emailVerificationCodeExpiresAt  DateTime?
+  lastEmailCodeSentAt             DateTime?
+  // Password Reset fields
+  resetToken                      String?
+  resetTokenExpiry                DateTime?
+  // 2FA Action Verification fields
+  lastActionVerificationToken     String?
+  lastActionVerificationExpiry    DateTime?
+  // Account lockout fields
+  failedLoginAttempts             Int              @default(0)
+  lockedUntil                     DateTime?
+  // Session invalidation: increment to revoke all existing JWTs
+  tokenVersion                    Int              @default(0)
+  // Other fields
+  emailVerified                   DateTime?
+  image                           String?
+  accounts                        Account[]
+  cards                           Card[]
+  passwords                       Password[]
+  sessions                        Session[]
+  subscriptions                   Subscription[]   // External service subscriptions (available to all tiers)
+  userSubscription                UserSubscription? // ByteLock subscription plan
+  emails                          UserEmail[]
+  vaultSettings                   VaultSettings?
+  notes                           Note[]
+  tags                            Tag[] // User's created tags
+  loginHistory                    LoginHistory[]   // Added: login history records
+  files                           File[]
+  sharedItemLinks                 SharedItemLink[]
+  plaidItem                       PlaidItem?
+}
+
+model VaultSettings {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  vaultPasswordHash    String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  encryptedMasterKey   String?
+  keySalt              String?
+  vaultCheckEncrypted  String?  // Encrypted user email for password verification (VaultCheck)
+  vaultCheckIv         String?  // IV for VaultCheck encryption
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                String    @id @default(cuid())
+  userId            String
+  serviceName       String?
+  username          String?
+  email             String?
+  lastBreachCheck   DateTime?
+  breachHistory     String[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  access_token      String?
+  expires_at        Int?
+  id_token          String?
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  scope             String?
+  session_state     String?
+  token_type        String?
+  type              String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Password {
+  id             String   @id @default(cuid())
+  userId         String
+  title          String
+  username       String?
+  password       String
+  url            String?
+  notes          String?
+  strength       Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  encryptionData Json?
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Card {
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  cardNumber     String
+  expiryMonth    Int
+  expiryYear     Int
+  cvv            String
+  billingAddress String?
+  tags           String[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  encryptionData Json?
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Subscription {
+  id              String   @id @default(cuid())
+  userId          String
+  serviceName     String
+  amount          Float
+  currency        String   @default("USD")
+  billingCycle    String
+  nextBillingDate DateTime
+  cardId          String?
+  tags            String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  TEAM
+}
+
+model UserSubscription {
+  id                   String          @id @default(cuid())
+  userId               String          @unique
+  user                 User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                 SubscriptionPlan @default(FREE) // <-- This field controls the user's tier: FREE / PRO / TEAM
+  isAdmin              Boolean         @default(false) // For team plans
+  teamId               String?         // Optional team ID for team members
+  expiresAt            DateTime?       // Only for paid plans
+  stripeCustomerId     String?         @unique // Stripe customer ID
+  stripeSubscriptionId String?         @unique // Stripe subscription ID
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+}
+
+model LoginHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ip         String
+  city       String?
+  deviceType String?
+  userAgent  String?
+  successful Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+model Note {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  encryptedTitle     String
+  encryptedContent   String
+  encryptionMetadata Json?    // To store IVs and salts for title and content
+  isPinned           Boolean  @default(false) // For pinning notes
+  lastModified       DateTime // Added lastModified field
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  tags               Tag[]    @relation("NoteTags") // Many-to-many relation with Tag
+
+  @@index([userId])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes     Note[]   @relation("NoteTags") // Many-to-many relation with Note
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, name]) // Tag names must be unique per user
+  @@index([userId])
+}
+
+model File {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileName           String   // Original file name
+  // The following columns were added after initial deployment. They are optional
+  // so that existing rows won't break during migration. Once data has been
+  // backfilled, you can make them required again.
+  encryptedName      String?  // Encrypted file name for storage
+  storageKey         String?  // Path/key in object storage
+  fileSize           Int      // Original file size in bytes
+  mimeType           String   // MIME type of the file
+  iv                 String?  // Optional IV used for encryption
+  authTag            String?  // Optional auth tag for AEAD
+  encryptionMetadata Json?    // To store any additional encryption metadata
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum SharedItemType {
+  PASSWORD
+  CARD
+  NOTE
+  FILE
+}
+
+model SharedItemLink {
+  id               String         @id @default(cuid())
+  ownerUserId      String
+  owner            User           @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  itemType         SharedItemType
+  itemId           String
+  publicId         String         @unique
+  tokenHash        String
+  payloadCipher    String
+  payloadIv        String
+  payloadSalt      String
+  expiresAt        DateTime?
+  maxUses          Int?
+  usedCount        Int            @default(0)
+  revokedAt        DateTime?
+  lastUsedAt       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([ownerUserId])
+  @@index([itemType, itemId])
+  @@index([publicId])
+  @@index([expiresAt])
+}
+

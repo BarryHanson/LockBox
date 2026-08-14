@@ -1,0 +1,930 @@
+openapi: 3.1.0
+info:
+  title: Lock Box API
+  version: 1.0.0
+  description: |
+    API contract for Lock Box web + native clients (Windows/Linux/iOS/Android).
+
+    Authentication:
+    - Preferred for native apps: `Authorization: Bearer <jwt>`
+    - Web compatibility: `token` cookie is also accepted by most endpoints.
+servers:
+  - url: https://bytelock.tech
+    description: Production
+  - url: http://localhost:3000
+    description: Local development
+tags:
+  - name: Auth
+  - name: User
+  - name: Notes
+  - name: Tags
+  - name: Vault
+  - name: Subscription
+paths:
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email/password (and optional TOTP)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login result
+          headers:
+            Set-Cookie:
+              description: token cookie for web clients
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/LoginSuccessResponse'
+                  - $ref: '#/components/schemas/LoginRequiresTwoFactorResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout and clear token cookie
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /api/auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change account password
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/user/me:
+    get:
+      tags: [User]
+      summary: Get current user profile and login history
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserMeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/user/delete:
+    delete:
+      tags: [User]
+      summary: Delete account and user data
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Account deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteAccountResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/users/role:
+    get:
+      tags: [User]
+      summary: Get effective role derived from subscription
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Role response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRoleResponse'
+        '401':
+          description: Not authenticated (role defaults to free)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRoleResponse'
+
+  /api/notes:
+    get:
+      tags: [Notes]
+      summary: List notes
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Notes list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Note'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Notes]
+      summary: Create note
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNoteRequest'
+      responses:
+        '201':
+          description: Note created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/notes/{noteId}:
+    put:
+      tags: [Notes]
+      summary: Update note
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NoteId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNoteRequest'
+      responses:
+        '200':
+          description: Updated note
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Notes]
+      summary: Delete note
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NoteId'
+      responses:
+        '204':
+          description: Note deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/tags:
+    get:
+      tags: [Tags]
+      summary: List tags
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Tags list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Tags]
+      summary: Create tag
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTagRequest'
+      responses:
+        '201':
+          description: Tag created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Tag already exists
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/vault:
+    get:
+      tags: [Vault]
+      summary: Get vault metadata from User record
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Vault metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VaultUserMetadata'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Vault]
+      summary: Update vault metadata on User record
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVaultUserMetadataRequest'
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/vault/status:
+    get:
+      tags: [Vault]
+      summary: Check vault setup status and retrieve verification metadata
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Vault setup state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VaultStatusResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/vault/setup:
+    post:
+      tags: [Vault]
+      summary: Initialize or update zero-knowledge vault settings
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VaultSetupRequest'
+      responses:
+        '200':
+          description: Vault setup completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/vault/retrieve:
+    get:
+      tags: [Vault]
+      summary: Retrieve vault key salt
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Salt retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VaultRetrieveResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Vault not set up
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/vault/unlock:
+    post:
+      tags: [Vault]
+      summary: Verify vault password and unlock vault
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VaultUnlockRequest'
+      responses:
+        '200':
+          description: Vault unlocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VaultUnlockResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/2fa/status:
+    get:
+      tags: [Auth]
+      summary: Get 2FA enabled state for current user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: 2FA status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TwoFactorStatusResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/subscriptions/usage:
+    get:
+      tags: [Subscription]
+      summary: Get usage metrics against plan limits
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Usage metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionUsageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+
+  parameters:
+    NoteId:
+      name: noteId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+        text/plain:
+          schema:
+            type: string
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+        text/plain:
+          schema:
+            type: string
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+        text/plain:
+          schema:
+            type: string
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+        text/plain:
+          schema:
+            type: string
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required: [success]
+
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        fullName:
+          type: string
+      required: [email, password, fullName]
+
+    RegisterResponse:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+            email:
+              type: string
+              format: email
+            name:
+              type: string
+              nullable: true
+            subscription:
+              type: object
+              nullable: true
+        message:
+          type: string
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        totpCode:
+          type: string
+          description: Required if account has 2FA enabled
+      required: [email, password]
+
+    LoginSuccessResponse:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+            email:
+              type: string
+              format: email
+            name:
+              type: string
+              nullable: true
+          required: [id, email]
+        token:
+          type: string
+        message:
+          type: string
+      required: [user, token, message]
+
+    LoginRequiresTwoFactorResponse:
+      type: object
+      properties:
+        requiresTwoFactor:
+          type: boolean
+      required: [requiresTwoFactor]
+
+    ChangePasswordRequest:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+      required: [currentPassword, newPassword]
+
+    UserSubscription:
+      type: object
+      nullable: true
+      properties:
+        plan:
+          type: string
+        isAdmin:
+          type: boolean
+        teamId:
+          type: string
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    LoginHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        ip:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        deviceType:
+          type: string
+          nullable: true
+        userAgent:
+          type: string
+          nullable: true
+        successful:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    UserMeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        image:
+          type: string
+          nullable: true
+        userSubscription:
+          $ref: '#/components/schemas/UserSubscription'
+        loginHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/LoginHistoryEntry'
+
+    DeleteAccountResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required: [success, message]
+
+    UserRoleResponse:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [free, pro, admin, team_member]
+        error:
+          type: string
+      required: [role]
+
+    Note:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        encryptedTitle:
+          type: string
+        encryptedContent:
+          type: string
+        encryptionMetadata:
+          type: object
+          additionalProperties: true
+          nullable: true
+        isPinned:
+          type: boolean
+        lastModified:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateNoteRequest:
+      type: object
+      properties:
+        encryptedTitle:
+          type: string
+        encryptedContent:
+          type: string
+        encryptionMetadata:
+          type: object
+          additionalProperties: true
+        lastModified:
+          type: string
+          format: date-time
+        tagIds:
+          type: array
+          items:
+            type: string
+      required: [encryptedTitle, encryptedContent]
+
+    UpdateNoteRequest:
+      allOf:
+        - $ref: '#/components/schemas/CreateNoteRequest'
+        - type: object
+          properties:
+            isPinned:
+              type: boolean
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateTagRequest:
+      type: object
+      properties:
+        name:
+          type: string
+      required: [name]
+
+    VaultUserMetadata:
+      type: object
+      properties:
+        id:
+          type: string
+        encryptedMasterKey:
+          type: string
+          nullable: true
+        vaultPasswordType:
+          type: string
+          nullable: true
+
+    UpdateVaultUserMetadataRequest:
+      type: object
+      properties:
+        encryptedMasterKey:
+          type: string
+        vaultPasswordType:
+          type: string
+          enum: [pin, password]
+      required: [encryptedMasterKey, vaultPasswordType]
+
+    VaultStatusResponse:
+      type: object
+      properties:
+        needsSetup:
+          type: boolean
+        keySalt:
+          type: string
+        vaultCheckEncrypted:
+          type: string
+          nullable: true
+        vaultCheckIv:
+          type: string
+          nullable: true
+      required: [needsSetup]
+
+    VaultSetupRequest:
+      type: object
+      properties:
+        vaultPasswordHash:
+          type: string
+        keySalt:
+          type: string
+        vaultCheckEncrypted:
+          type: string
+        vaultCheckIv:
+          type: string
+      required: [vaultPasswordHash, keySalt, vaultCheckEncrypted, vaultCheckIv]
+
+    VaultRetrieveResponse:
+      type: object
+      properties:
+        keySalt:
+          type: string
+      required: [keySalt]
+
+    VaultUnlockRequest:
+      type: object
+      properties:
+        vaultPassword:
+          type: string
+      required: [vaultPassword]
+
+    VaultUnlockResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        encryptedMasterKey:
+          type: string
+      required: [success]
+
+    TwoFactorStatusResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+      required: [enabled]
+
+    UsageMetricItem:
+      type: object
+      properties:
+        current:
+          type: integer
+        limit:
+          oneOf:
+            - type: integer
+            - type: 'null'
+      required: [current, limit]
+
+    SubscriptionUsageMetrics:
+      type: object
+      properties:
+        passwords:
+          $ref: '#/components/schemas/UsageMetricItem'
+        secureNotes:
+          $ref: '#/components/schemas/UsageMetricItem'
+        subscriptions:
+          $ref: '#/components/schemas/UsageMetricItem'
+        dataBreaches:
+          $ref: '#/components/schemas/UsageMetricItem'
+        teamMembers:
+          $ref: '#/components/schemas/UsageMetricItem'
+      required: [passwords, secureNotes, subscriptions, dataBreaches, teamMembers]
+
+    SubscriptionUsageResponse:
+      type: object
+      properties:
+        usageMetrics:
+          $ref: '#/components/schemas/SubscriptionUsageMetrics'
+      required: [usageMetrics]

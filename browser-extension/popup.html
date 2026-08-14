@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=375">
+  <title>ByteLock</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- Loading state -->
+    <div id="loading-screen" class="screen active">
+      <div class="spinner"></div>
+      <p class="text-muted">Connecting…</p>
+    </div>
+
+    <!-- Login screen -->
+    <div id="login-screen" class="screen auth-screen">
+      <div class="auth-inner">
+        <div class="header">
+          <div class="logo-wrap">
+            <img src="icons/icon-48.png" alt="ByteLock" class="logo">
+          </div>
+          <h1>ByteLock</h1>
+          <p>Sign in to your vault</p>
+        </div>
+        <form id="login-form" class="form-stack">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="you@example.com" required autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Account password" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-primary" id="login-btn">
+            <span class="btn-text">Sign In</span>
+            <span class="btn-spinner" hidden></span>
+          </button>
+          <p id="login-error" class="error-msg" hidden></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- 2FA screen -->
+    <div id="twofa-screen" class="screen auth-screen">
+      <div class="auth-inner">
+        <div class="header">
+          <div class="logo-wrap">
+            <img src="icons/icon-48.png" alt="ByteLock" class="logo">
+          </div>
+          <h1>Verify Identity</h1>
+          <p>Enter the verification code sent to you</p>
+        </div>
+        <form id="twofa-form" class="form-stack">
+          <div class="form-group">
+            <label for="twofa-code">Verification Code</label>
+            <input type="text" id="twofa-code" placeholder="000000" required maxlength="6" pattern="[0-9]{6}" autocomplete="one-time-code" inputmode="numeric" style="letter-spacing:0.2em; font-size:16px; text-align:center;">
+          </div>
+          <button type="submit" class="btn btn-primary" id="twofa-btn">
+            <span class="btn-text">Verify</span>
+            <span class="btn-spinner" hidden></span>
+          </button>
+          <p id="twofa-error" class="error-msg" hidden></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Vault unlock screen -->
+    <div id="vault-screen" class="screen auth-screen">
+      <div class="auth-inner">
+        <div class="header">
+          <div class="logo-wrap">
+            <img src="icons/icon-48.png" alt="ByteLock" class="logo">
+          </div>
+          <h1>Unlock Vault</h1>
+          <p>Enter your master vault password</p>
+        </div>
+        <form id="vault-form" class="form-stack">
+          <div class="form-group">
+            <label for="vault-password">Vault Password</label>
+            <input type="password" id="vault-password" placeholder="Master password" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-primary" id="vault-btn">
+            <span class="btn-text">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:5px;vertical-align:-2px">
+                <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              Unlock
+            </span>
+            <span class="btn-spinner" hidden></span>
+          </button>
+          <p id="vault-error" class="error-msg" hidden></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Permissions screen -->
+    <div id="permissions-screen" class="screen auth-screen">
+      <div class="auth-inner">
+        <div class="header">
+          <div class="logo-wrap">
+            <img src="icons/icon-48.png" alt="ByteLock" class="logo">
+          </div>
+          <h1>Enable Autofill</h1>
+          <p>ByteLock needs access to websites to detect login forms and autofill your passwords.</p>
+        </div>
+        <div class="form-stack">
+          <button class="btn btn-primary" id="grant-permissions-btn">
+            <span class="btn-text">Enable Autofill</span>
+            <span class="btn-spinner" hidden></span>
+          </button>
+          <p id="permissions-error" class="error-msg" hidden></p>
+          <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:8px">You can revoke this at any time in your browser's extension settings.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- New password screen -->
+    <div id="new-pw-screen" class="screen">
+      <div class="sub-header">
+        <button class="back-btn" id="new-pw-back">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <span class="sub-header-title">New Password</span>
+        <div style="width:30px"></div>
+      </div>
+      <div class="sub-body">
+        <form id="new-pw-form" class="form-stack">
+          <div class="form-group">
+            <label for="np-title">Title</label>
+            <input type="text" id="np-title" placeholder="e.g. Google" required autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="np-url">Website URL</label>
+            <input type="url" id="np-url" placeholder="https://example.com" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="np-username">Username / Email</label>
+            <input type="text" id="np-username" placeholder="you@example.com" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="np-password">Password</label>
+            <div class="pw-input-wrap">
+              <input type="password" id="np-password" placeholder="Password" required autocomplete="new-password">
+              <button type="button" class="pw-toggle-btn" id="np-pw-toggle" title="Show / hide password">
+                <svg class="eye-show" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-hide" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" hidden>
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" id="new-pw-btn">
+            <span class="btn-text">Save Password</span>
+            <span class="btn-spinner" hidden></span>
+          </button>
+          <p id="new-pw-error" class="error-msg" hidden></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Main (unlocked) screen -->
+    <div id="main-screen" class="screen">
+
+      <!-- Top bar -->
+      <div class="header-bar">
+        <div class="header-left">
+          <div class="logo-small-wrap">
+            <img src="icons/icon-32.png" alt="" class="logo-small">
+          </div>
+          <span class="brand">ByteLock</span>
+        </div>
+        <div class="header-right">
+          <button class="icon-btn icon-btn-primary" id="add-pw-btn" title="Add new password">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <button class="icon-btn" id="lock-btn" title="Lock vault">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </button>
+          <button class="icon-btn" id="logout-btn" title="Sign out">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="main-body">
+
+        <!-- View toggle -->
+        <div class="view-tabs">
+          <button class="view-tab active" id="tab-site">This Site</button>
+          <button class="view-tab" id="tab-all">All Passwords</button>
+        </div>
+
+        <!-- Current site view -->
+        <div id="view-site">
+          <div class="section-header">
+            <span class="section-label" id="site-title">Current Site</span>
+            <span class="badge" id="match-count">0</span>
+          </div>
+          <div id="password-list" class="card-list">
+            <div class="empty-state" id="no-matches">
+              <div class="empty-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </div>
+              <p>No saved passwords for this site</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- All passwords view -->
+        <div id="view-all" hidden>
+          <!-- Search -->
+          <div class="search-group">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="search" id="search-input" placeholder="Search passwords…">
+          </div>
+          <div id="all-passwords-list" class="card-list"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

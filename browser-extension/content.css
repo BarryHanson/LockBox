@@ -1,0 +1,277 @@
+/* ByteLock Extension - Content Script Styles */
+/* Injected into all web pages */
+
+/* ── Autofill Dropdown ──────────────────────────────────────────────────── */
+#bytelock-autofill-dropdown {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  overflow: hidden;
+  max-height: 320px;
+  overflow-y: auto;
+  animation: bytelock-slide-in 0.15s ease-out;
+}
+
+@keyframes bytelock-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bytelock-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #f97316;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bytelock-dropdown-header svg {
+  color: #f97316;
+}
+
+.bytelock-dropdown-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background-color 0.1s;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.bytelock-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.bytelock-dropdown-item:hover,
+.bytelock-dropdown-item:focus {
+  background-color: #fff7ed;
+  outline: none;
+}
+
+.bytelock-dropdown-item-title {
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bytelock-dropdown-item-user {
+  font-size: 12px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Field Icon ─────────────────────────────────────────────────────────── */
+.bytelock-field-icon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  transition: all 0.15s;
+}
+
+.bytelock-field-icon:hover {
+  background: #f97316;
+  border-color: #f97316;
+}
+
+.bytelock-field-icon:hover svg {
+  stroke: white;
+}
+
+.bytelock-field-icon svg {
+  color: #f97316;
+}
+
+/* ── Save Password Banner ───────────────────────────────────────────────── */
+#bytelock-save-banner {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 2147483647;
+  animation: bytelock-banner-in 0.25s ease-out;
+}
+
+@keyframes bytelock-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.bytelock-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  max-width: 420px;
+}
+
+.bytelock-banner-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fff7ed, #fed7aa);
+  border-radius: 10px;
+  color: #f97316;
+}
+
+.bytelock-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.bytelock-banner-text strong {
+  display: block;
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.bytelock-banner-text span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bytelock-banner-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.bytelock-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  font-family: inherit;
+}
+
+.bytelock-btn-primary {
+  background: #f97316;
+  color: white;
+}
+
+.bytelock-btn-primary:hover {
+  background: #ea580c;
+}
+
+.bytelock-btn-ghost {
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.bytelock-btn-ghost:hover {
+  background: #f8fafc;
+  color: #334155;
+}
+
+/* ── Dark mode (matches website dark theme exactly) ─────────────────────── */
+@media (prefers-color-scheme: dark) {
+  #bytelock-autofill-dropdown {
+    background: hsl(222, 47%, 9%);
+    border-color: hsl(217, 33%, 17%);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .bytelock-dropdown-header {
+    border-bottom-color: hsl(217, 33%, 14%);
+  }
+
+  .bytelock-dropdown-item {
+    border-bottom-color: hsl(217, 33%, 13%);
+  }
+
+  .bytelock-dropdown-item:hover,
+  .bytelock-dropdown-item:focus {
+    background-color: hsl(217, 33%, 14%);
+  }
+
+  .bytelock-dropdown-item-title {
+    color: hsl(210, 40%, 96%);
+  }
+
+  .bytelock-dropdown-item-user {
+    color: hsl(215, 20%, 45%);
+  }
+
+  .bytelock-field-icon {
+    background: rgba(249, 115, 22, 0.12);
+    border-color: rgba(249, 115, 22, 0.35);
+  }
+
+  .bytelock-banner-content {
+    background: hsl(222, 47%, 9%);
+    border-color: hsl(217, 33%, 17%);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55), 0 2px 12px rgba(0,0,0,0.35);
+  }
+
+  .bytelock-banner-icon {
+    background: rgba(249, 115, 22, 0.15);
+  }
+
+  .bytelock-banner-text strong {
+    color: hsl(210, 40%, 96%);
+  }
+
+  .bytelock-banner-text span {
+    color: hsl(215, 20%, 45%);
+  }
+
+  .bytelock-btn-ghost {
+    color: hsl(215, 20%, 60%);
+    border-color: hsl(217, 33%, 17%);
+  }
+
+  .bytelock-btn-ghost:hover {
+    background: hsl(217, 33%, 14%);
+    color: hsl(210, 40%, 96%);
+  }
+}
