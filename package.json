@@ -59,7 +59,7 @@
     "next": "^14.2.21",
     "next-auth": "^4.24.11",
     "next-themes": "^0.2.1",
-    "nodemailer": "^6.10.1",
+    "nodemailer": "^10.0.2",
     "otplib": "^12.0.1",
     "plaid": "^35.0.0",
     "qrcode": "^1.5.4",
